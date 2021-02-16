@@ -13,8 +13,15 @@ function getFullDocRange(document) {
 function format(text) {
   const exp = sexp("(" + text + ")");
   const indentDepth = "  ";
+  const singleLineFunctions = ['+', '-', '*', '/', '=', '>=', '<=', '>', '<'];
+  
+  function get_depth(exp) {
+    return exp.map(e => Array.isArray(e) ? (get_depth(e) + 1) : 0).reduce((c, e) => c < e ? e : c, 0);
+  }
   
   function format_inner2(exp) {
+    if(!Array.isArray(exp)) return exp;
+    
     return "(" + exp.map((s, i) => {
       if(Array.isArray(s)) {
         s = format_inner2(s);
@@ -32,6 +39,15 @@ function format(text) {
       if(exp.length === 3 && Array.isArray(exp[1]) && Array.isArray(exp[2])) {
         return "(" + exp[0] + " " + format_inner2(exp[1]) + "\n" + indent + indentDepth + format_inner(exp[2], indent + indentDepth) + "\n" + indent + ")";
       }
+    }
+    if(exp.length === 5 && exp[0] === "define-fun") {
+      return "(" + exp[0] + " " + format_inner2(exp[1]) + "\n" +
+        indent + indentDepth + format_inner2(exp[2]) + " " + format_inner2(exp[3]) +
+        (Array.isArray(exp[4]) ? ("\n" + indent + indentDepth + format_inner(exp[4], indent + indentDepth)) : " " + exp[4]) + "\n" + indent + ")";
+    }
+    if(exp.length >= 1 && singleLineFunctions.indexOf(exp[0]) !== -1 && get_depth(exp) < 5) {
+      // console.dir({exp, exp, depth: get_depth(exp)}, {depth: 10});
+      return format_inner2(exp);
     }
     let contains_newline = false;
     return "(" +
@@ -53,8 +69,9 @@ function format(text) {
 }
 
 // (() => {
-//   const a = "(assert (forall ((n4 Int) (recQs1835 Int)) (=> (and (X126 recQs1835 n4) (and (and (>= recQs1835 1) (>= recQs1835 (+ 1 (* (- 0 1) n4)))) (>= recQs1835 (+ 1 (* 1 n4))))) (X154 recQs1835 n4))))\n(assert (forall ((n4 Int)(n5 Int)) (+ 10 20)))(forall aaa bbb (+ 1 2))";
-//   console.log(format(a));
+// //  const a = "(assert (forall ((n4 Int) (recQs1835 Int)) (=> (and (X126 recQs1835 n4) (and (and (>= recQs1835 1) (>= recQs1835 (+ 1 (* (- 0 1) n4)))) (>= recQs1835 (+ 1 (* 1 n4))))) (X154 recQs1835 n4))))\n(assert (forall ((n4 Int)(n5 Int)) (+ 10 20)))(forall aaa bbb (+ 1 2))";
+//  const a = require('fs').readFileSync('./src/model.smt2');
+//  console.log(format(a));
 // })();
 
 function activate(context) {
