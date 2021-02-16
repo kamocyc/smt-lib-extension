@@ -4,16 +4,20 @@
 	"description": "SMT-LIB syntax highlighting and comment-out",
 	"version": "0.0.1",
 	"publisher": "kamocyc",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/kamocyc/smt-lib-extension.git"
-  },
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/kamocyc/smt-lib-extension.git"
+	},
 	"engines": {
 		"vscode": "^1.18.0"
 	},
 	"categories": [
 		"Programming Languages"
 	],
+  "activationEvents": [
+    "onLanguage:smt-lib"
+  ],
+  "main": "./src/extension.js",
 	"contributes": {
 		"languages": [
 			{
@@ -36,5 +40,8 @@
 				"path": "./syntaxes/smt.tmLanguage"
 			}
 		]
+	},
+	"dependencies": {
+		"sexp": "^0.1.5"
 	}
 }
