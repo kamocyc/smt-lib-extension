@@ -1,7 +1,9 @@
-const sexp = require('sexp');
-const vscode = require('vscode');
+import * as sexp from 'sexp';
+import * as vscode from 'vscode';
 
-function getFullDocRange(document) {
+type Sexp = (Sexp | string)[];
+
+function getFullDocRange(document: vscode.TextDocument): vscode.Range {
 	return document.validateRange(
 		new vscode.Range(
 			new vscode.Position(0, 0),
@@ -10,16 +12,16 @@ function getFullDocRange(document) {
 	);
 }
 
-function format(text) {
-  const exp = sexp("(" + text + ")");
+function format(text: string): string {
+  const exp = sexp("(" + text + ")") as Sexp;
   const indentDepth = "  ";
   const singleLineFunctions = ['+', '-', '*', '/', '=', '>=', '<=', '>', '<'];
   
-  function get_depth(exp) {
+  function get_depth(exp: Sexp): number {
     return exp.map(e => Array.isArray(e) ? (get_depth(e) + 1) : 0).reduce((c, e) => c < e ? e : c, 0);
   }
   
-  function format_inner2(exp) {
+  function format_inner2(exp: Sexp | string): string {
     if(!Array.isArray(exp)) return exp;
     
     return "(" + exp.map((s, i) => {
@@ -31,11 +33,11 @@ function format(text) {
     }).join("") + ")";
   }
   
-  function format_inner(exp, indent) {
-    if(exp.length >= 1 && ["declare-fun", "declare-const"].indexOf(exp[0]) !== -1) {
+  function format_inner(exp: Sexp, indent: string): string {
+    if(exp.length >= 1 && typeof exp[0] === 'string' && ["declare-fun", "declare-const"].indexOf(exp[0]) !== -1) {
       return format_inner2(exp);
     }
-    if(exp.length >= 1 && ["exists", "forall"].indexOf(exp[0]) !== -1) {
+    if(exp.length >= 1 && typeof exp[0] === 'string' && ["exists", "forall"].indexOf(exp[0]) !== -1) {
       if(exp.length === 3 && Array.isArray(exp[1]) && Array.isArray(exp[2])) {
         return "(" + exp[0] + " " + format_inner2(exp[1]) + "\n" + indent + indentDepth + format_inner(exp[2], indent + indentDepth) + "\n" + indent + ")";
       }
@@ -45,7 +47,7 @@ function format(text) {
         indent + indentDepth + format_inner2(exp[2]) + " " + format_inner2(exp[3]) +
         (Array.isArray(exp[4]) ? ("\n" + indent + indentDepth + format_inner(exp[4], indent + indentDepth)) : " " + exp[4]) + "\n" + indent + ")";
     }
-    if(exp.length >= 1 && singleLineFunctions.indexOf(exp[0]) !== -1 && get_depth(exp) < 5) {
+    if(exp.length >= 1 && typeof exp[0] === 'string' && singleLineFunctions.indexOf(exp[0]) !== -1 && get_depth(exp) < 5) {
       // console.dir({exp, exp, depth: get_depth(exp)}, {depth: 10});
       return format_inner2(exp);
     }
@@ -64,7 +66,7 @@ function format(text) {
   }
   
   return exp.map(e => {
-    return format_inner(e, "");
+    return typeof e === "string" ? e : format_inner(e, "");
   }).join("\n");
 }
 
@@ -74,7 +76,7 @@ function format(text) {
 //  console.log(format(a));
 // })();
 
-function activate(context) {
+export function activate(context: vscode.ExtensionContext) {
 	vscode.languages.registerDocumentFormattingEditProvider('smt-lib', {
 		provideDocumentFormattingEdits(document) {
       const text = document.getText();
@@ -86,4 +88,3 @@ function activate(context) {
 	});
 }
 
-module.exports.activate = activate;
